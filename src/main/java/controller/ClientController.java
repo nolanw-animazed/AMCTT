@@ -1,5 +1,9 @@
 package controller;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -7,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import data.UserData;
 import data.UserList;
 import gui.ClientView;
+import io.AMCTTProjectIO;
 
 /**
  * Main Controller of the project, housing the userList and clientView for the project, and passing information between the two.
@@ -20,8 +25,13 @@ public class ClientController {
 	/** The ClientView for the program, houses all the GUI data for the program */
 	private ClientView clientView;
 	
-	/** The fileLocation for the program, used for loading and saving data */
-	private String fileLocation;
+	/** The fileLocation for the options sheet in the program */
+	private String optionsFileLocation;
+	
+	/** All barcodes for the current program */
+	private List<Integer> allBarcodes;
+	
+	private HashMap<String, String> optionsOutput;
 	
 	/**
 	 * Standard Constructor for the Client Controller, starting the userList and ClientView
@@ -29,7 +39,8 @@ public class ClientController {
 	public ClientController() {
 		userList = new UserList(null);
 		clientView = new ClientView(this);
-		fileLocation = "";
+		optionsFileLocation = "";
+		allBarcodes = null;
 	}
 
 	/**
@@ -37,12 +48,23 @@ public class ClientController {
 	 * Along with this it starts all the internal schedulers for autosave, time tracking, and starts the display for logged in users.
 	 */
 	public void initialize() {
-		fileLocation = clientView.getUserFile();
-		if(fileLocation == null) {
-			fileLocation = "src/main/resources/userDataFile.txt";
+		optionsFileLocation = clientView.getFileName();
+		if(optionsFileLocation == null) {
+			optionsFileLocation = "src/main/resources/options.properties";
 		}
-		userList.loadData(fileLocation);
+		
+		optionsOutput = AMCTTProjectIO.processOptionsFile(optionsFileLocation);
+		
+		//TODO create a method to intialize the fileLocations if it's first load
+		
+		userList.loadData(optionsOutput.get("userFileLocation"));
 		clientView.intializeWindow();
+		
+		try {
+			allBarcodes = AMCTTProjectIO.loadBarcodesList(optionsOutput.get("barcodeFileLocation"));
+		} catch(IllegalArgumentException e) {
+			allBarcodes = new ArrayList<Integer>();
+		}
 		
 		this.initalizeAutoSave();
 		this.initalizeTimeTracking();
@@ -124,7 +146,9 @@ public class ClientController {
 		if(finalSave == 1) {
 			userList.logoutAllUsers();
 		}
-		userList.saveData(fileLocation);
+		
+		userList.saveData(optionsOutput.get("userFileLocation"));
+		AMCTTProjectIO.saveBarcodeData(optionsOutput.get("barcodeFileLocation"), allBarcodes);
 	}
 
 	/**
@@ -154,5 +178,21 @@ public class ClientController {
 	 */
 	public UserData[] searchForUsers(String userName, String userEmail, String userPhoneNumber) {
 		return userList.searchThroughUsers(userName, userEmail, userPhoneNumber);
+	}
+
+	/**
+	 * Used to generate a new barcode with each call.
+	 * @return Returns a random int that is not currently in the list
+	 */
+	public Integer getNewBarcode() {
+		Random r = new Random();
+		int number = 0;
+		boolean sameNumber = true;
+		do {
+			number = r.nextInt(100000, 1000000);
+			sameNumber = allBarcodes.contains(number);
+		} while (sameNumber);
+		allBarcodes.add(number);
+		return number;
 	}
 }

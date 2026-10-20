@@ -60,16 +60,14 @@ public class ClientView {
 	private ClientController cc;
 	/** Main Frame for the project, stored for regeneration purposes */
 	private JFrame mainFrame;
-	/** Top left Panel for the project, stored for regeneration purposes*/
-	private JPanel topLeftPanel;
 	/** Top right panel for the project, stored for regeneration purposes*/
-	private JPanel topRightPanel;
+	private JPanel customerButtonsPanel;
 	/** Bottom Left panel for the project, stored for regeneration purposes*/
-	private JPanel bottomLeftPanel;
+	private JPanel staffButtonsPanel;
 	/** Bottom right Scroll panel for the project, stored for regeneration purposes*/
-	private JScrollPane bottomRightPanel;
+	private JScrollPane signedInCustomersPanel;
 	/** The Inside of the scroll panel, stored for regeneration purposes*/
-	private JPanel innerBottomRightPanel;
+	private JPanel innerSignedInPanel;
 	/** Current Selected Printer (to print barcodes)*/
 	private PrintService selectedPrinter;
 	
@@ -80,11 +78,10 @@ public class ClientView {
 	public ClientView(ClientController cc) {
 		this.cc = cc;
 		mainFrame = null;
-		topLeftPanel = null;
-		topRightPanel = null;
-		bottomLeftPanel = null;
-		bottomRightPanel = null;
-		innerBottomRightPanel = null;
+		customerButtonsPanel = null;
+		staffButtonsPanel = null;
+		signedInCustomersPanel = null;
+		innerSignedInPanel = null;
 	}
 
 	/**
@@ -107,7 +104,7 @@ public class ClientView {
 			}
 		});
 		
-		mainFrame.setSize(600, 600);
+		mainFrame.setSize(1000, 600);
 		
 		//Creating the Navigation buttons for the bottom left panel.
 		JButton customerCreationButton = new JButton("Create a new Customer");
@@ -125,28 +122,25 @@ public class ClientView {
 			this.createCustomerLoginPanel();
 		});
 		
-		//Create Panel Objects for the four corners.
-		topLeftPanel = new JPanel();
-		topRightPanel = new JPanel();
-		bottomLeftPanel = new JPanel();
-		innerBottomRightPanel = new JPanel();
-		bottomRightPanel = new JScrollPane(innerBottomRightPanel);
+		//Create Panel Objects
+		customerButtonsPanel = new JPanel();
+		staffButtonsPanel = new JPanel();
+		innerSignedInPanel = new JPanel();
+		signedInCustomersPanel = new JScrollPane(innerSignedInPanel);
 		
-		//Bottom Left Panel is filled with the 3 main buttons.
-		bottomLeftPanel.setLayout(new GridLayout(3, 0));
-		bottomLeftPanel.add(customerCreationButton);
-		bottomLeftPanel.add(customerSearchButton);
-		bottomLeftPanel.add(customerLoginButton);
+		//Staff Buttons Panel is filled with the 3 main buttons.
+		staffButtonsPanel.setLayout(new GridLayout(3, 0));
+		staffButtonsPanel.add(customerCreationButton);
+		staffButtonsPanel.add(customerSearchButton);
+		staffButtonsPanel.add(customerLoginButton);
 		
 		//Maybe unneeded, but this is to keep the vertical bar active at all times for clarity
-		bottomRightPanel.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+		signedInCustomersPanel.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		
-		//Using a 4 corners approach to the program, with each panel getting it's own corner
-		mainFrame.setLayout(new GridLayout(2,2));
-		mainFrame.add(topLeftPanel);
-		mainFrame.add(topRightPanel);
-		mainFrame.add(bottomLeftPanel);
-		mainFrame.add(bottomRightPanel);
+		mainFrame.setLayout(new GridLayout(1,3));
+		mainFrame.add(staffButtonsPanel);
+		mainFrame.add(customerButtonsPanel);
+		mainFrame.add(signedInCustomersPanel);
 		
 		//Used to redisplay
 		regenerateWindow();
@@ -207,6 +201,17 @@ public class ClientView {
 		}
 		
 		header.add(printers);
+		
+		JMenu barcodePrinting = new JMenu("Barcodes");
+		JMenuItem barcodeMenuItem = new JMenuItem("Print Barcode Sheet");
+		
+		barcodeMenuItem.addActionListener(e -> {
+			printSheetOfBarcodesForUsers();
+		});
+		
+		barcodePrinting.add(barcodeMenuItem);
+		
+		header.add(barcodePrinting);
 		
 		mainFrame.setJMenuBar(header);
 	}
@@ -271,9 +276,9 @@ public class ClientView {
 		userTimeRemainingLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		userTimeRemainingLabel.setVerticalAlignment(SwingConstants.CENTER);
 		
-		topRightPanel.removeAll();
+		customerButtonsPanel.removeAll();
 		
-		topRightPanel.setLayout(new GridLayout(3, 2));
+		customerButtonsPanel.setLayout(new GridLayout(3, 2));
 		
 		JButton displayCustomerInfoButton = new JButton("Customer Info");
 
@@ -303,19 +308,19 @@ public class ClientView {
 		customerTimeButton.addActionListener(e -> {
 			try{
 				cc.toggleUser(ud);
-				topRightPanel.removeAll();
+				customerButtonsPanel.removeAll();
 				this.regenerateWindow();
 			} catch(IllegalArgumentException exception) {
 				JOptionPane.showConfirmDialog(null, "Please add time to this user.", "Error" , JOptionPane.DEFAULT_OPTION);
 			}
 		});
 		
-		topRightPanel.add(userNameLabel);
-		topRightPanel.add(displayCustomerInfoButton);
-		topRightPanel.add(addCustomerHourButton);
-		topRightPanel.add(addCustomerTimeButton);
-		topRightPanel.add(userTimeRemainingLabel);
-		topRightPanel.add(customerTimeButton);
+		customerButtonsPanel.add(userNameLabel);
+		customerButtonsPanel.add(displayCustomerInfoButton);
+		customerButtonsPanel.add(addCustomerHourButton);
+		customerButtonsPanel.add(addCustomerTimeButton);
+		customerButtonsPanel.add(userTimeRemainingLabel);
+		customerButtonsPanel.add(customerTimeButton);
 		
 		this.regenerateWindow();
 	}
@@ -407,6 +412,7 @@ public class ClientView {
 		
 		JLabel idLabel = new JLabel("<html>The User's Non-Changeable Id - " + ud.getId() + "</html>");
 		
+		//TODO this needs to change
 		JButton reprintButton = new JButton("<html>Reprint the Barcode</html>");
 		
 		name.addActionListener(e -> {
@@ -489,7 +495,101 @@ public class ClientView {
 		
 		frame.setVisible(true);
 	}
+	
+	//TODO in progress Method to print sheets of barcodes
+	private void printSheetOfBarcodesForUsers() {
+		Code128 barcode = new Code128();
+		barcode.setFontName("Monospaced");
+		barcode.setFontSize(16);
+		barcode.setModuleWidth(1);
+		barcode.setBarHeight(40);
+		barcode.setHumanReadableLocation(HumanReadableLocation.BOTTOM);
 
+		//Page Format? This is the sizing on the PDF
+		int pageWidth = 700;
+		int pageHeight = 934;
+		
+		BufferedImage imagePage = new BufferedImage(pageWidth, pageHeight, BufferedImage.TYPE_BYTE_GRAY);
+		Graphics2D g2dPage = imagePage.createGraphics();
+		g2dPage.setColor(java.awt.Color.WHITE);
+		g2dPage.fillRect(0, 0, pageWidth, pageHeight);
+		g2dPage.setColor(java.awt.Color.BLACK);
+		
+		//Edge of ULine Paper and Padding for Barcodes
+		int xPadding = 20;
+		int yPadding = 24;
+		int xBoxLength = 140;
+		int yBoxLength = 93;
+		
+		for(int i = 0; i < 5; i++) {
+			for(int j = 0; j < 10; j++) {
+				barcode.setContent(Integer.toString(cc.getNewBarcode()));
+				int width = barcode.getWidth();
+				int height = barcode.getHeight();
+				BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
+				Graphics2D g2d = image.createGraphics();
+				Java2DRenderer renderer = new Java2DRenderer(g2d, 1, Color.WHITE, Color.BLACK);
+				renderer.render(barcode);
+				
+				BufferedImage barcodeImage = null;
+
+				try {
+					ImageIO.write(image, "png", new File("code128.png"));
+					barcodeImage = ImageIO.read(new File("code128.png"));
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				int xPageCords = (i * xBoxLength) + xPadding;
+				int yPageCords = (j * yBoxLength) + yPadding;
+				g2dPage.drawImage(barcodeImage, xPageCords, yPageCords, 100, 60, null);
+			}
+		}
+
+		try {
+			ImageIO.write(imagePage, "png", new File("barcodeSheet.png"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		File file = new File("barcodeSheet.png");
+		FileInputStream inputStream = null;
+		try {
+			inputStream = new FileInputStream(file);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+		if (selectedPrinter != null) {
+			DocPrintJob job = selectedPrinter.createPrintJob();
+			SimpleDoc doc = new SimpleDoc(inputStream, DocFlavor.INPUT_STREAM.PNG, null);
+			
+			PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
+			
+			attributes.add(OrientationRequested.PORTRAIT);
+			attributes.add(new PrinterResolution(203, 203, PrinterResolution.DPI));
+			attributes.add(new MediaPrintableArea((float)0.5, (float)0.5, (float)7.5, 10, MediaPrintableArea.INCH));
+			
+			try {
+				job.print(doc, attributes);
+			} catch (PrintException e) {
+				JOptionPane.showConfirmDialog(null, "Selected Printer does not work.", "Error" , JOptionPane.DEFAULT_OPTION);
+			}
+		} else {
+			JOptionPane.showConfirmDialog(null, "Please select a printer from the toolbar.", "Error" , JOptionPane.DEFAULT_OPTION);
+		}
+		
+		try {
+			inputStream.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+//	Old Barcode system for Rollo Printers
 	private void printBarcodeForUser(UserData ud) {
 		Code128 barcode = new Code128();
 		barcode.setFontName("Monospaced");
@@ -510,7 +610,6 @@ public class ClientView {
 		try {
 			ImageIO.write(image, "png", new File("code128.png"));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -638,8 +737,8 @@ public class ClientView {
 	 */
 	public void displayLoggedInUsers(ArrayList<UserData> loggedInUsers) {
 		//Reset the inside of the Bottom Right Panel
-		innerBottomRightPanel.removeAll();
-		innerBottomRightPanel.setLayout(new BoxLayout(innerBottomRightPanel, BoxLayout.Y_AXIS));
+		innerSignedInPanel.removeAll();
+		innerSignedInPanel.setLayout(new BoxLayout(innerSignedInPanel, BoxLayout.Y_AXIS));
 		
 		//Use all the UserData to create the LoggedIn User Buttons (and attach actionListeners to each of them)
 		for(int i = 0; i < loggedInUsers.size(); i++) {
@@ -648,15 +747,15 @@ public class ClientView {
 			j.addActionListener(e -> {
 				displayUserData(ud);
 			});
-			innerBottomRightPanel.add(j);
+			innerSignedInPanel.add(j);
 		}
 		
 		//Repaint and Revalidate the Bottom Right Panel, then Regenerate the main Window
-		innerBottomRightPanel.revalidate();
-		innerBottomRightPanel.repaint();
+		innerSignedInPanel.revalidate();
+		innerSignedInPanel.repaint();
 		
-		bottomRightPanel.revalidate();
-		bottomRightPanel.repaint();
+		signedInCustomersPanel.revalidate();
+		signedInCustomersPanel.repaint();
 		
 		this.regenerateWindow();
 	}
@@ -724,10 +823,11 @@ public class ClientView {
 	}
 
 	/**
+	 * @TODO redo this method naming
 	 * Used at startup to get the UserFile for Data via a JFileChooser
 	 * @return Returns the Absolute Path String for a File, returns null if a File isn't Chosen
 	 */
-	public String getUserFile() {
+	public String getFileName() {
 		//Sets the directory of the fileChooser to the current directory
 		JFileChooser fileChooser = new JFileChooser(".");
 		

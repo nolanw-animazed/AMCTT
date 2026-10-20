@@ -23,6 +23,9 @@
 hs_err_pid*
 replay_pid*
 
+# options file
+options.properties
+
 # Test File
 userDataFile.txt
 /target/

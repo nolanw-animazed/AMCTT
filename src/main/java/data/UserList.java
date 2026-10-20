@@ -5,7 +5,7 @@ import java.util.Collections;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
-import io.UserListIO;
+import io.AMCTTProjectIO;
 
 /**
  * UserList is used to contain all the UserData for the Project, along with holding the LoggedInUser List
@@ -21,12 +21,12 @@ public class UserList {
 	
 	/**
 	 * Standard Constructor for the UserList
-	 * @param dataFile DataFile for the UserData (if Null, the listen will just start empty)
+	 * @param dataFile DataFile for the UserData (if Null, the list will just start empty)
 	 */
 	public UserList(String dataFile) {
-		if(dataFile != null) {
-			userDataList = UserListIO.extractUserData(dataFile);
-		} else {
+		try { 
+			userDataList = AMCTTProjectIO.extractUserData(dataFile);
+		} catch(IllegalArgumentException e) {
 			userDataList = new ArrayList<UserData>();
 		}
 		loggedInUserList = new ArrayList<UserData>();
@@ -37,7 +37,7 @@ public class UserList {
 	 * @param file DataFile for the UserData (will overwrite anything currently in the list)
 	 */
 	public void loadData(String file) {
-		userDataList = UserListIO.extractUserData(file);
+		userDataList = AMCTTProjectIO.extractUserData(file);
 	}
 
 	/**
@@ -217,7 +217,7 @@ public class UserList {
 	 * @param fileLocation Given File Location
 	 */
 	public void saveData(String fileLocation) {
-		UserListIO.saveUserData(fileLocation, this);
+		AMCTTProjectIO.saveUserData(fileLocation, this);
 	}
 	
 	@Override
